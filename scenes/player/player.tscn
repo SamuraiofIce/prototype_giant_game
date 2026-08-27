@@ -1,0 +1,39 @@
+[gd_scene load_steps=7 format=3 uid="uid://dhgxvn2e8g6ka"]
+
+[ext_resource type="Script" uid="uid://dhqtyic0irubs" path="res://scenes/player/Player.cs" id="1_8afob"]
+[ext_resource type="PackedScene" uid="uid://o6wbagq0bpo5" path="res://assets/Katana/katana.tscn" id="2_dovo2"]
+[ext_resource type="Script" uid="uid://dvorognd2ggiy" path="res://scenes/player/PlayerCamRig.cs" id="2_gmlin"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_8afob"]
+radius = 0.3
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gmlin"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_dovo2"]
+radius = 0.3100586
+
+[node name="Player" type="CharacterBody3D"]
+script = ExtResource("1_8afob")
+
+[node name="PlayerMesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CapsuleMesh_8afob")
+skeleton = NodePath("../CameraRig/PlayerCam")
+surface_material_override/0 = SubResource("StandardMaterial3D_gmlin")
+
+[node name="CameraRig" type="Node3D" parent="." node_paths=PackedStringArray("camera", "player")]
+script = ExtResource("2_gmlin")
+camera = NodePath("PlayerCam")
+player = NodePath("../PlayerMesh")
+
+[node name="PlayerCam" type="Camera3D" parent="CameraRig"]
+current = true
+
+[node name="UI" type="CanvasGroup" parent="CameraRig/PlayerCam"]
+
+[node name="PlayerHitbox" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("CapsuleShape3D_dovo2")
+
+[node name="Katana" parent="." instance=ExtResource("2_dovo2")]
+transform = Transform3D(-0.79954123, -0.10342269, 0.5916398, -0.022455383, 0.98952174, 0.14262897, -0.60019135, 0.100752234, -0.7934858, 0.8582127, 1.0335863, 0)

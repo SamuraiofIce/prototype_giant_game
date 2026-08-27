@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3 uid="uid://o6wbagq0bpo5"]
+
+[ext_resource type="ArrayMesh" uid="uid://dc56hssxa5jod" path="res://assets/Katana/KatanaSizeAdjust.obj" id="1_sb3rj"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_sb3rj"]
+size = Vector3(1.1630325, 0.011962891, 0.06274414)
+
+[node name="Node3D" type="StaticBody3D"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.19431686, 0, 0)
+mesh = ExtResource("1_sb3rj")
+skeleton = NodePath("../CollisionShape3D")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5920296, 0.00036621094, -0.0013427734)
+shape = SubResource("BoxShape3D_sb3rj")
