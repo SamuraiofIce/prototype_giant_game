@@ -1,276 +1,295 @@
-using System;
 using Godot;
 
 public partial class PlayerCamRig : Node3D
 {
     public enum CamMode
     {
-        FirstPerson = 0,
-        CloseUp = 1,
-        Lakitu = 2
+        FirstPerson,
+        CloseUp,
+        Lakitu
     }
 
-    [Export] private Camera3D camera;
-    [Export] private MeshInstance3D player;
-    [Export] private float PlayerFadeSpeed = 5f;
+    // -------------------------------------------------------------------------
+    // References
+    // -------------------------------------------------------------------------
 
-    private float _playerTargetAlpha = 1f;
+    [Export] private Camera3D _camera;
+    [Export] private MeshInstance3D _player;
+
+    // -------------------------------------------------------------------------
+    // Camera Distances
+    // -------------------------------------------------------------------------
+
+    [Export] private float _firstPersonDistance = 0f;
+    [Export] private float _closeUpDistance = 1.2f;
+    [Export] private float _lakituDistance = 4.3f;
+
+    // -------------------------------------------------------------------------
+    // Camera Movement
+    // -------------------------------------------------------------------------
+
+    [Export] private float _cameraTransitionSpeed = 15f;
+    [Export] private float _cameraRotationPerSecond = 1.5f;
+    [Export] private float _cameraPitchTransitionSpeed = 100f;
+    [Export] private float _cameraPitchCorrectionSpeed = 90f;
+
+    [Export] private float _closeUpHorizontalOffset = 0.75f;
+
+    // -------------------------------------------------------------------------
+    // Camera Pitch Limits
+    // -------------------------------------------------------------------------
+
+    [Export] private Vector2 _firstPersonPitchLimits = new(-90f, 90f);
+    [Export] private Vector2 _closeUpPitchLimits = new(-90f, 50f);
+    [Export] private Vector2 _lakituPitchLimits = new(-90f, 17f);
+
+    // -------------------------------------------------------------------------
+    // Player Fade
+    // -------------------------------------------------------------------------
+
+    [Export] private float _playerFadeSpeed = 5f;
+    [Export] private float _playerFadeOutDistance = 0.5f;
+    [Export] private float _playerFadeInDistance = 0.9f;
+
+    // -------------------------------------------------------------------------
+    // State
+    // -------------------------------------------------------------------------
+
+    private CamMode _cameraMode = CamMode.Lakitu;
+    private CamMode _previousCameraMode;
+
+    private float _targetCameraDistance;
+    private float _targetCameraHorizontalOffset;
+
+    private Vector2 _currentPitchLimits;
+    private Vector2 _targetPitchLimits;
+
     private float _playerAlpha = 1f;
-    private CamMode _previousCamMode;
-
-    [Export] private float FirstPersonDistance = 0f;
-    [Export] private float CloseUpDistance = 1.2f;
-    [Export] private float LakituDistance = 4.3f;
-
-    [Export] private float CameraTransitionSpeed = 15f;
-    [Export] private float CameraRotationPerSec = 1.5f;
-    [Export] private float CameraPitchTransitionSpeed = 100f;
-
-    [Export] private Vector2 FirstPersonPitchLimits = new(-90f, 90f);
-    [Export] private Vector2 CloseUpPitchLimits = new(-90f, 50f);
-    [Export] private Vector2 LakituPitchLimits = new(-90f, 17f);
-    [Export] private float PlayerFadeOutDistance = 0.5f;
-    [Export] private float PlayerFadeInDistance = 0.9f;
-    [Export] private float CameraPitchCorrectionSpeed = 90f;
-    [Export] private float CloseUpHorizontalOffset = 0.75f;
-    private float _targetCameraX;
-
 
     private double _rigYaw;
     private double _rigPitch;
 
-    private CamMode _camMode = CamMode.Lakitu;
-
-    private float _targetCameraDistance;
-    private Vector2 _currentPitchLimits;
-    private Vector2 _targetPitchLimits;
+    // -------------------------------------------------------------------------
+    // Godot Lifecycle
+    // -------------------------------------------------------------------------
 
     public override void _Ready()
     {
-        _targetCameraDistance = GetCameraDistance();
-        _targetCameraX = GetCameraHorizontalOffset();
-
-        _currentPitchLimits = GetPitchLimits();
-        _targetPitchLimits = _currentPitchLimits;
-
-        Position = new Vector3(0, 2.345f, 0);
-
-        _rigPitch = Rotation.X;
-        _rigYaw = Rotation.Y;
-
-        camera.Position = new Vector3(
-            _targetCameraX,
-            0,
-            _targetCameraDistance
-        );
-
-        camera.Rotation = Vector3.Zero;
-
+        InitializeRig();
+        InitializeCamera();
         SetupPlayerMaterial();
-    }
-
-    private void SetupPlayerMaterial()
-    {
-        if (player == null)
-            return;
-
-        Material material = player.GetActiveMaterial(0);
-
-        if (material is StandardMaterial3D standardMaterial)
-        {
-            standardMaterial = (StandardMaterial3D)standardMaterial.Duplicate();
-            standardMaterial.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
-            player.SetSurfaceOverrideMaterial(0, standardMaterial);
-        }
     }
 
     public override void _Process(double delta)
     {
         HandleCameraModeInput();
-        HandleCameraTransition(delta);
-        HandlePitchLimitTransition(delta);
-        HandlePlayerFade(delta);
         HandleRotationInput(delta);
+
+        UpdateCameraTransition(delta);
+        UpdatePitchLimitTransition(delta);
+        UpdatePlayerFade(delta);
     }
+
+    // -------------------------------------------------------------------------
+    // Initialization
+    // -------------------------------------------------------------------------
+
+    private void InitializeRig()
+    {
+        //Note/Todo: Rewrite this to account for different rig starting heights for characters, vehicles, etc.
+        Position = new Vector3(0f, 2.345f, 0f);
+
+        _rigPitch = Rotation.X;
+        _rigYaw = Rotation.Y;
+
+        UpdateCameraTargets();
+
+        _currentPitchLimits = _targetPitchLimits;
+    }
+
+    private void InitializeCamera()
+    {
+        _camera.Position = new Vector3(
+            _targetCameraHorizontalOffset,
+            0f,
+            _targetCameraDistance
+        );
+
+        _camera.Rotation = Vector3.Zero;
+    }
+
+    private void SetupPlayerMaterial()
+    {
+        if (_player == null)
+            return;
+
+        if (_player.GetActiveMaterial(0) is not StandardMaterial3D material)
+            return;
+
+        var transparentMaterial = (StandardMaterial3D)material.Duplicate();
+
+        transparentMaterial.Transparency =
+            BaseMaterial3D.TransparencyEnum.Alpha;
+
+        _player.SetSurfaceOverrideMaterial(0, transparentMaterial);
+    }
+
+    // -------------------------------------------------------------------------
+    // Camera Mode
+    // -------------------------------------------------------------------------
 
     private void HandleCameraModeInput()
     {
         if (Input.IsActionJustPressed("cam_in"))
-        {
-            SetCameraMode(_camMode - 1);
-        }
+            SetCameraMode(_cameraMode - 1);
 
         if (Input.IsActionJustPressed("cam_out"))
-        {
-            SetCameraMode(_camMode + 1);
-        }
+            SetCameraMode(_cameraMode + 1);
+
     }
 
     private void SetCameraMode(CamMode mode)
     {
-        mode = (CamMode)Math.Clamp(
+        mode = ClampCameraMode(mode);
+
+        if (_cameraMode == mode)
+            return;
+
+        _previousCameraMode = _cameraMode;
+        _cameraMode = mode;
+
+        UpdateCameraTargets();
+    }
+
+    private void UpdateCameraTargets()
+    {
+        _targetCameraDistance = GetCameraDistance();
+        _targetCameraHorizontalOffset = GetCameraHorizontalOffset();
+        _targetPitchLimits = GetPitchLimits();
+    }
+
+    private static CamMode ClampCameraMode(CamMode mode)
+    {
+        return (CamMode)Mathf.Clamp(
             (int)mode,
             (int)CamMode.FirstPerson,
             (int)CamMode.Lakitu
-        );
-
-        if (_camMode == mode)
-            return;
-
-        _previousCamMode = _camMode;
-        _camMode = mode;
-
-        _targetCameraDistance = GetCameraDistance();
-        _targetPitchLimits = GetPitchLimits();
-        _targetCameraX = GetCameraHorizontalOffset();
-    }
-
-    private float GetCameraHorizontalOffset()
-    {
-        return _camMode switch
-        {
-            CamMode.CloseUp => CloseUpHorizontalOffset,
-            _ => 0f
-        };
-    }
-    private void HandlePlayerFade(double delta)
-    {
-        float targetAlpha;
-
-        if (_previousCamMode == CamMode.FirstPerson &&
-            _camMode != CamMode.FirstPerson)
-        {
-            // Leaving first person: wait until the camera has moved
-            // far enough away before bringing the player back.
-            targetAlpha = Mathf.Clamp(
-                (camera.Position.Z - PlayerFadeInDistance) /
-                (GetCameraDistance() - PlayerFadeInDistance),
-                0f,
-                1f
-            );
-        }
-        else if (_camMode == CamMode.FirstPerson)
-        {
-            // Entering first person: fade out as the camera gets close.
-            targetAlpha = Mathf.Clamp(
-                camera.Position.Z / PlayerFadeOutDistance,
-                0f,
-                1f
-            );
-        }
-        else
-        {
-            targetAlpha = 1f;
-        }
-
-        _playerAlpha = Mathf.MoveToward(
-            _playerAlpha,
-            targetAlpha,
-            PlayerFadeSpeed * (float)delta
-        );
-
-        SetPlayerAlpha(_playerAlpha);
-    }
-
-    private void SetPlayerAlpha(float alpha)
-    {
-        if (player == null)
-            return;
-
-        if (player.GetActiveMaterial(0) is StandardMaterial3D material)
-        {
-            Color color = material.AlbedoColor;
-            color.A = alpha;
-            material.AlbedoColor = color;
-        }
-    }
-
-    private void HandleCameraTransition(double delta)
-    {
-        float deltaFloat = (float)delta;
-
-        float newX = Mathf.MoveToward(
-            camera.Position.X,
-            _targetCameraX,
-            CameraTransitionSpeed * deltaFloat
-        );
-
-        float newZ = Mathf.MoveToward(
-            camera.Position.Z,
-            _targetCameraDistance,
-            CameraTransitionSpeed * deltaFloat
-        );
-
-        camera.Position = new Vector3(
-            newX,
-            camera.Position.Y,
-            newZ
-        );
-    }
-
-    private void HandlePitchLimitTransition(double delta)
-    {
-        _currentPitchLimits.X = Mathf.MoveToward(
-            _currentPitchLimits.X,
-            _targetPitchLimits.X,
-            CameraPitchTransitionSpeed * (float)delta
-        );
-
-        _currentPitchLimits.Y = Mathf.MoveToward(
-            _currentPitchLimits.Y,
-            _targetPitchLimits.Y,
-            CameraPitchTransitionSpeed * (float)delta
         );
     }
 
     private float GetCameraDistance()
     {
-        return _camMode switch
+        return _cameraMode switch
         {
-            CamMode.FirstPerson => FirstPersonDistance,
-            CamMode.CloseUp => CloseUpDistance,
-            CamMode.Lakitu => LakituDistance,
-            _ => LakituDistance
+            CamMode.FirstPerson => _firstPersonDistance,
+            CamMode.CloseUp => _closeUpDistance,
+            CamMode.Lakitu => _lakituDistance,
+            _ => _lakituDistance
+        };
+    }
+
+    private float GetCameraHorizontalOffset()
+    {
+        return _cameraMode switch
+        {
+            CamMode.CloseUp => _closeUpHorizontalOffset,
+            _ => 0f
         };
     }
 
     private Vector2 GetPitchLimits()
     {
-        return _camMode switch
+        return _cameraMode switch
         {
-            CamMode.FirstPerson => FirstPersonPitchLimits,
-            CamMode.CloseUp => CloseUpPitchLimits,
-            CamMode.Lakitu => LakituPitchLimits,
-            _ => LakituPitchLimits
+            CamMode.FirstPerson => _firstPersonPitchLimits,
+            CamMode.CloseUp => _closeUpPitchLimits,
+            CamMode.Lakitu => _lakituPitchLimits,
+            _ => _lakituPitchLimits
         };
+    }
+
+    // -------------------------------------------------------------------------
+    // Camera Transition
+    // -------------------------------------------------------------------------
+
+    private void UpdateCameraTransition(double delta)
+    {
+        float step = _cameraTransitionSpeed * (float)delta;
+
+        float newX = Mathf.MoveToward(
+            _camera.Position.X,
+            _targetCameraHorizontalOffset,
+            step
+        );
+
+        float newZ = Mathf.MoveToward(
+            _camera.Position.Z,
+            _targetCameraDistance,
+            step
+        );
+
+        _camera.Position = new Vector3(
+            newX,
+            _camera.Position.Y,
+            newZ
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Pitch
+    // -------------------------------------------------------------------------
+
+    private void UpdatePitchLimitTransition(double delta)
+    {
+        float step = _cameraPitchTransitionSpeed * (float)delta;
+
+        _currentPitchLimits.X = Mathf.MoveToward(
+            _currentPitchLimits.X,
+            _targetPitchLimits.X,
+            step
+        );
+
+        _currentPitchLimits.Y = Mathf.MoveToward(
+            _currentPitchLimits.Y,
+            _targetPitchLimits.Y,
+            step
+        );
     }
 
     private void HandleRotationInput(double delta)
     {
-        double horizontalMovement =
-            Input.GetAxis("cam_left", "cam_right")
-            * delta
-            * CameraRotationPerSec
-            * 360;
+        float rotationAmount =
+            _cameraRotationPerSecond * 360f * (float)delta;
 
-        double verticalMovement =
-            Input.GetAxis("cam_up", "cam_down")
-            * delta
-            * CameraRotationPerSec
-            * 360;
+        float horizontalInput =
+            Input.GetAxis("cam_left", "cam_right");
 
-        _rigYaw -= horizontalMovement;
-        _rigPitch -= verticalMovement;
+        float verticalInput =
+            Input.GetAxis("cam_up", "cam_down");
 
-        float deltaFloat = (float)delta;
+        _rigYaw -= horizontalInput * rotationAmount;
+        _rigPitch -= verticalInput * rotationAmount;
 
-        // Smoothly correct the pitch if it is outside the current limits.
+        CorrectPitchIfOutOfBounds(delta);
+
+        Rotation = new Vector3(
+            Mathf.DegToRad((float)_rigPitch),
+            Mathf.DegToRad((float)_rigYaw),
+            0f
+        );
+    }
+
+    private void CorrectPitchIfOutOfBounds(double delta)
+    {
+        float correctionStep =
+            _cameraPitchCorrectionSpeed * (float)delta;
+
         if (_rigPitch < _currentPitchLimits.X)
         {
             _rigPitch = Mathf.MoveToward(
                 (float)_rigPitch,
                 _currentPitchLimits.X,
-                CameraPitchCorrectionSpeed * deltaFloat
+                correctionStep
             );
         }
         else if (_rigPitch > _currentPitchLimits.Y)
@@ -278,21 +297,78 @@ public partial class PlayerCamRig : Node3D
             _rigPitch = Mathf.MoveToward(
                 (float)_rigPitch,
                 _currentPitchLimits.Y,
-                CameraPitchCorrectionSpeed * deltaFloat
+                correctionStep
             );
         }
 
-        // Never allow the pitch to actually exceed the current limits.
-        _rigPitch = Math.Clamp(
-            _rigPitch,
+        _rigPitch = Mathf.Clamp(
+            (float)_rigPitch,
             _currentPitchLimits.X,
             _currentPitchLimits.Y
         );
+    }
 
-        Rotation = new Vector3(
-            Mathf.DegToRad((float)_rigPitch),
-            Mathf.DegToRad((float)_rigYaw),
-            0
+    // -------------------------------------------------------------------------
+    // Player Fade
+    // -------------------------------------------------------------------------
+
+    private void UpdatePlayerFade(double delta)
+    {
+        float targetAlpha = GetTargetPlayerAlpha();
+
+        _playerAlpha = Mathf.MoveToward(
+            _playerAlpha,
+            targetAlpha,
+            _playerFadeSpeed * (float)delta
         );
+
+        SetPlayerAlpha(_playerAlpha);
+    }
+
+    private float GetTargetPlayerAlpha()
+    {
+        // Leaving first person: wait for the camera to move away
+        // before fading the player back in.
+        if (_previousCameraMode == CamMode.FirstPerson &&
+            _cameraMode != CamMode.FirstPerson)
+        {
+            float fadeRange =
+                GetCameraDistance() - _playerFadeInDistance;
+
+            if (Mathf.IsZeroApprox(fadeRange))
+                return 1f;
+
+            return Mathf.Clamp(
+                (_camera.Position.Z - _playerFadeInDistance) / fadeRange,
+                0f,
+                1f
+            );
+        }
+
+        // Entering first person: fade the player out as the camera
+        // approaches the player.
+        if (_cameraMode == CamMode.FirstPerson)
+        {
+            return Mathf.Clamp(
+                _camera.Position.Z / _playerFadeOutDistance,
+                0f,
+                1f
+            );
+        }
+
+        return 1f;
+    }
+
+    private void SetPlayerAlpha(float alpha)
+    {
+        if (_player == null)
+            return;
+
+        if (_player.GetActiveMaterial(0) is not StandardMaterial3D material)
+            return;
+
+        Color color = material.AlbedoColor;
+        color.A = alpha;
+        material.AlbedoColor = color;
     }
 }

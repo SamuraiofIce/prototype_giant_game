@@ -21,10 +21,10 @@ mesh = SubResource("CapsuleMesh_8afob")
 skeleton = NodePath("../CameraRig/PlayerCam")
 surface_material_override/0 = SubResource("StandardMaterial3D_gmlin")
 
-[node name="CameraRig" type="Node3D" parent="." node_paths=PackedStringArray("camera", "player")]
+[node name="CameraRig" type="Node3D" parent="." node_paths=PackedStringArray("_camera", "_player")]
 script = ExtResource("2_gmlin")
-camera = NodePath("PlayerCam")
-player = NodePath("../PlayerMesh")
+_camera = NodePath("PlayerCam")
+_player = NodePath("../PlayerMesh")
 
 [node name="PlayerCam" type="Camera3D" parent="CameraRig"]
 current = true
