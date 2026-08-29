@@ -2,17 +2,26 @@ using Godot;
 
 public partial class Player : CharacterBody3D
 {
+    private enum JumpType
+    {
+        None,
+        Standard,
+        Backflip
+    }
+
+    private JumpType _jumpType = JumpType.None;
+
     [Export] public float MoveSpeed = 12.0f;
-[Export] public float FallingMoveSpeed = 9.0f;
+    [Export] public float FallingMoveSpeed = 9.0f;
 
 
     [Export] public float JumpVelocity = 20.0f;
 
     // Gravity settings
     [Export] public float Gravity = 50.0f;
-[Export] public float MaxGravity = 200.0f;
-[Export] public float TerminalVelocity = 50.0f;
-[Export] public float GravityExponent = 4.0f;
+    [Export] public float MaxGravity = 200.0f;
+    [Export] public float TerminalVelocity = 50.0f;
+    [Export] public float GravityExponent = 4.0f;
 
 
     [Export] public float WallJumpUpVelocity = 20.0f;
@@ -22,8 +31,10 @@ public partial class Player : CharacterBody3D
     [Export] private Camera3D _camera;
     [Export] private PackedScene WallJumpEffect;
     [Export] private Skeleton3D _meshSkeleton;
+    [Export] private AnimationPlayer _animationPlayer;
 
-[Export] public float TurnSpeed = 12.0f;
+
+    [Export] public float TurnSpeed = 12.0f;
 
     private Vector3 _wallNormal = Vector3.Zero;
     private bool _isTouchingWall = false;
@@ -46,10 +57,14 @@ public partial class Player : CharacterBody3D
         HandleMovement(dt);
         MoveAndSlide();
 
+
         // Update wall state AFTER movement so we know
         // what we actually collided with this frame.
         UpdateWallState();
+
+        UpdateAnimation();
     }
+
 
     private void HandleMovement(float delta)
     {
@@ -59,161 +74,161 @@ public partial class Player : CharacterBody3D
     }
 
     private void HandleHorizontalMovement(float delta)
-{
-    Vector2 input = Input.GetVector(
-        "move_left",
-        "move_right",
-        "move_forward",
-        "move_backward"
-    );
-
-    // Camera-relative movement.
-    Vector3 cameraForward = -_camera.GlobalTransform.Basis.Z;
-    Vector3 cameraRight = _camera.GlobalTransform.Basis.X;
-
-    cameraForward.Y = 0.0f;
-    cameraRight.Y = 0.0f;
-
-    cameraForward = cameraForward.Normalized();
-    cameraRight = cameraRight.Normalized();
-
-    Vector3 direction =
-        cameraRight * input.X +
-        cameraForward * -input.Y;
-
-    if (direction.LengthSquared() > 1.0f)
-        direction = direction.Normalized();
-Vector3 facingDirection = new Vector3(
-    Velocity.X,
-    0.0f,
-    Velocity.Z
-);
-
-if (facingDirection.LengthSquared() > 0.001f)
-{
-    facingDirection = facingDirection.Normalized();
-
-    Basis targetBasis = Basis.LookingAt(
-        facingDirection,
-        Vector3.Up
-    );
-
-    _meshSkeleton.GlobalBasis = _meshSkeleton.GlobalBasis.Slerp(
-        targetBasis,
-        1.0f - Mathf.Exp(-TurnSpeed * delta)
-    );
-    /*_shadowMesh.GlobalBasis = _shadowMesh.GlobalBasis.Slerp(
-        targetBasis,
-        1.0f - Mathf.Exp(-TurnSpeed * delta)
-    );*/
-}
-
-
-    // --------------------------------
-    // WALL JUMP MOMENTUM
-    // --------------------------------
-
-    if (_wallJumpTimer > 0.0f)
     {
-        _wallJumpTimer -= delta;
-
-        float strength = Mathf.Clamp(
-            _wallJumpTimer / WallJumpHorizontalDuration,
-            0.0f,
-            1.0f
+        Vector2 input = Input.GetVector(
+            "move_left",
+            "move_right",
+            "move_forward",
+            "move_backward"
         );
 
-        Vector3 wallVelocity =
-            _wallJumpVelocity * strength;
+        // Camera-relative movement.
+        Vector3 cameraForward = -_camera.GlobalTransform.Basis.Z;
+        Vector3 cameraRight = _camera.GlobalTransform.Basis.X;
+
+        cameraForward.Y = 0.0f;
+        cameraRight.Y = 0.0f;
+
+        cameraForward = cameraForward.Normalized();
+        cameraRight = cameraRight.Normalized();
+
+        Vector3 direction =
+            cameraRight * input.X +
+            cameraForward * -input.Y;
+
+        if (direction.LengthSquared() > 1.0f)
+            direction = direction.Normalized();
+        Vector3 facingDirection = new Vector3(
+            Velocity.X,
+            0.0f,
+            Velocity.Z
+        );
+
+        if (facingDirection.LengthSquared() > 0.001f)
+        {
+            facingDirection = facingDirection.Normalized();
+
+            Basis targetBasis = Basis.LookingAt(
+                facingDirection,
+                Vector3.Up
+            );
+
+            _meshSkeleton.GlobalBasis = _meshSkeleton.GlobalBasis.Slerp(
+                targetBasis,
+                1.0f - Mathf.Exp(-TurnSpeed * delta)
+            );
+            /*_shadowMesh.GlobalBasis = _shadowMesh.GlobalBasis.Slerp(
+                targetBasis,
+                1.0f - Mathf.Exp(-TurnSpeed * delta)
+            );*/
+        }
+
+
+        // --------------------------------
+        // WALL JUMP MOMENTUM
+        // --------------------------------
+
+        if (_wallJumpTimer > 0.0f)
+        {
+            _wallJumpTimer -= delta;
+
+            float strength = Mathf.Clamp(
+                _wallJumpTimer / WallJumpHorizontalDuration,
+                0.0f,
+                1.0f
+            );
+
+            Vector3 wallVelocity =
+                _wallJumpVelocity * strength;
+
+            Velocity = new Vector3(
+                wallVelocity.X,
+                Velocity.Y,
+                wallVelocity.Z
+            );
+
+            return;
+        }
+
+        // --------------------------------
+        // NORMAL MOVEMENT
+        // --------------------------------
+
+        float maxHorizontalSpeed =
+            Velocity.Y < 0.0f
+                ? FallingMoveSpeed
+                : MoveSpeed;
+
+        Vector3 horizontalVelocity = Vector3.Zero;
+
+        if (direction.LengthSquared() > 0.0f)
+        {
+            horizontalVelocity =
+                direction * maxHorizontalSpeed;
+        }
 
         Velocity = new Vector3(
-            wallVelocity.X,
+            horizontalVelocity.X,
             Velocity.Y,
-            wallVelocity.Z
+            horizontalVelocity.Z
         );
-
-        return;
     }
-
-    // --------------------------------
-    // NORMAL MOVEMENT
-    // --------------------------------
-
-    float maxHorizontalSpeed =
-        Velocity.Y < 0.0f
-            ? FallingMoveSpeed
-            : MoveSpeed;
-
-    Vector3 horizontalVelocity = Vector3.Zero;
-
-    if (direction.LengthSquared() > 0.0f)
-    {
-        horizontalVelocity =
-            direction * maxHorizontalSpeed;
-    }
-
-    Velocity = new Vector3(
-        horizontalVelocity.X,
-        Velocity.Y,
-        horizontalVelocity.Z
-    );
-}
 
     private void HandleGravity(float delta)
-{
-    if (!IsOnFloor())
     {
-        // Only care about downward velocity.
-        float fallSpeed = Mathf.Max(-Velocity.Y, 0.0f);
+        if (!IsOnFloor())
+        {
+            // Only care about downward velocity.
+            float fallSpeed = Mathf.Max(-Velocity.Y, 0.0f);
 
-        // Convert fall speed into a 0-1 range.
-        float fallProgress = Mathf.Clamp(
-            fallSpeed / TerminalVelocity,
-            0.0f,
-            1.0f
-        );
+            // Convert fall speed into a 0-1 range.
+            float fallProgress = Mathf.Clamp(
+                fallSpeed / TerminalVelocity,
+                0.0f,
+                1.0f
+            );
 
-        // Exponential curve.
-        //
-        // Exponent of 1 = linear
-        // Exponent of 2 = gradual ramp-up
-        // Exponent of 3+ = stays gentle longer, then ramps sharply
-        float gravityProgress = Mathf.Pow(
-            fallProgress,
-            GravityExponent
-        );
+            // Exponential curve.
+            //
+            // Exponent of 1 = linear
+            // Exponent of 2 = gradual ramp-up
+            // Exponent of 3+ = stays gentle longer, then ramps sharply
+            float gravityProgress = Mathf.Pow(
+                fallProgress,
+                GravityExponent
+            );
 
-        // Increase gravity as the player falls faster.
-        float currentGravity = Mathf.Lerp(
-            Gravity,
-            MaxGravity,
-            gravityProgress
-        );
+            // Increase gravity as the player falls faster.
+            float currentGravity = Mathf.Lerp(
+                Gravity,
+                MaxGravity,
+                gravityProgress
+            );
 
-        float newVelocityY =
-            Velocity.Y - currentGravity * delta;
+            float newVelocityY =
+                Velocity.Y - currentGravity * delta;
 
-        // Never exceed terminal velocity.
-        newVelocityY = Mathf.Max(
-            newVelocityY,
-            -TerminalVelocity
-        );
+            // Never exceed terminal velocity.
+            newVelocityY = Mathf.Max(
+                newVelocityY,
+                -TerminalVelocity
+            );
 
-        Velocity = new Vector3(
-            Velocity.X,
-            newVelocityY,
-            Velocity.Z
-        );
+            Velocity = new Vector3(
+                Velocity.X,
+                newVelocityY,
+                Velocity.Z
+            );
+        }
+        else if (Velocity.Y < 0.0f)
+        {
+            Velocity = new Vector3(
+                Velocity.X,
+                0.0f,
+                Velocity.Z
+            );
+        }
     }
-    else if (Velocity.Y < 0.0f)
-    {
-        Velocity = new Vector3(
-            Velocity.X,
-            0.0f,
-            Velocity.Z
-        );
-    }
-}
 
     private void HandleJump()
     {
@@ -234,6 +249,8 @@ if (facingDirection.LengthSquared() > 0.001f)
 
             // Refresh the air jump.
             _hasAirJump = true;
+
+            _jumpType = JumpType.Standard;
 
             return;
         }
@@ -260,6 +277,8 @@ if (facingDirection.LengthSquared() > 0.001f)
             // their air jump back.
             _hasAirJump = true;
 
+            _jumpType = JumpType.Backflip;
+
             SpawnWallJumpEffect(_wallNormal);
 
             return;
@@ -279,9 +298,61 @@ if (facingDirection.LengthSquared() > 0.001f)
 
             _hasAirJump = false;
 
+            _jumpType = JumpType.Backflip;
+
             SpawnWallJumpEffect(Vector3.Down);
         }
     }
+
+    private void UpdateAnimation()
+    {
+        // --------------------------------
+        // ON GROUND
+        // --------------------------------
+
+        if (IsOnFloor())
+        {
+            Vector3 horizontalVelocity = new Vector3(
+                Velocity.X,
+                0.0f,
+                Velocity.Z
+            );
+
+            if (horizontalVelocity.LengthSquared() > 0.01f)
+            {
+                PlayAnimation("NinjaAnims/Run");
+            }
+            else
+            {
+                PlayAnimation("NinjaAnims/Idle");
+            }
+
+            _jumpType = JumpType.None;
+
+            return;
+        }
+
+        // --------------------------------
+        // IN AIR
+        // --------------------------------
+
+        if (_jumpType == JumpType.Backflip)
+        {
+            PlayAnimation("NinjaAnims/Backflip");
+        }
+        else
+        {
+            PlayAnimation("NinjaAnims/Jump");
+        }
+    }
+    private void PlayAnimation(string animationName)
+    {
+        if (_animationPlayer.CurrentAnimation != animationName)
+        {
+            _animationPlayer.Play(animationName);
+        }
+    }
+
 
     private void UpdateWallState()
     {

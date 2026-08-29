@@ -384,7 +384,7 @@ public partial class PlayerCamRig : Node3D
         if (_player.GetActiveMaterial(0) is not StandardMaterial3D material)
             return;
 
-        if(alpha >= 1)
+        if (alpha >= 1)
             _playerShadowMesh.Visible = true;
         else
             _playerShadowMesh.Visible = false;
