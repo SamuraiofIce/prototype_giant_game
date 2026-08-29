@@ -1,12 +1,21 @@
-[gd_scene load_steps=8 format=3 uid="uid://1dysdhlhkkoq"]
+[gd_scene load_steps=15 format=3 uid="uid://1dysdhlhkkoq"]
 
 [ext_resource type="PackedScene" uid="uid://dhgxvn2e8g6ka" path="res://scenes/player/player.tscn" id="1_ybdod"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_2s55i"]
-size = Vector3(1, 0.4951172, 1)
+size = Vector3(2.9892578, 0.4951172, 2.9841614)
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_ybdod"]
+frequency = 0.5363
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_2s55i"]
+width = 4096
+height = 4096
+noise = SubResource("FastNoiseLite_ybdod")
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ybdod"]
 albedo_color = Color(0.53951985, 0.6758636, 0.75495124, 1)
+albedo_texture = SubResource("NoiseTexture2D_2s55i")
 metallic = 0.5
 roughness = 0.35
 
@@ -27,15 +36,30 @@ sky_material = SubResource("ProceduralSkyMaterial_ybdod")
 background_mode = 2
 sky = SubResource("Sky_2s55i")
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_ybdod"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_2s55i"]
+
+[sub_resource type="Gradient" id="Gradient_ybdod"]
+offsets = PackedFloat32Array(0, 0.06779661, 0.7372881, 0.779661, 0.7966102, 0.9576271, 0.9830508, 1)
+colors = PackedColorArray(0, 0, 0, 1, 0.61864406, 0.61864406, 0.61864406, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_2s55i"]
+gradient = SubResource("Gradient_ybdod")
+fill_from = Vector2(1, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_o3n0h"]
+albedo_texture = SubResource("GradientTexture2D_2s55i")
+
 [node name="TestMap" type="Node3D"]
 
 [node name="Player" parent="." instance=ExtResource("1_ybdod")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.055991173, 0.1956116, -0.010498374)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.055991173, 0.1956116, 7.010864)
 
 [node name="StaticBody3D" type="StaticBody3D" parent="."]
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2524414, 0)
+transform = Transform3D(100, 0, 0, 0, 1, 0, 0, 0, 100, 1.4160156, -0.2524414, 1.5090942)
 shape = SubResource("BoxShape3D_2s55i")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="StaticBody3D"]
@@ -48,3 +72,22 @@ environment = SubResource("Environment_o3n0h")
 transform = Transform3D(0.68166643, 0.34544408, -0.6449801, 0, 0.88152605, 0.47213542, 0.7316631, -0.3218389, 0.6009067, 0, 0, 0)
 light_energy = 1.721
 shadow_enabled = true
+
+[node name="pillar" type="StaticBody3D" parent="."]
+transform = Transform3D(4.54, 0, 0, 0, 17.28, 0, 0, 0, 4.54, -5.8446875, 8.101671, -0.010498374)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="pillar"]
+shape = SubResource("BoxShape3D_ybdod")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="pillar/CollisionShape3D"]
+mesh = SubResource("BoxMesh_2s55i")
+
+[node name="pillar2" type="StaticBody3D" parent="."]
+transform = Transform3D(9.865, 0, 0, 0, 100, 0, 0, 0, 9.865, -32.37957, 48.07, 15.965765)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="pillar2"]
+shape = SubResource("BoxShape3D_ybdod")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="pillar2/CollisionShape3D"]
+mesh = SubResource("BoxMesh_2s55i")
+surface_material_override/0 = SubResource("StandardMaterial3D_o3n0h")

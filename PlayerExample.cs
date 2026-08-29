@@ -1,6 +1,5 @@
-using Godot;
+/*using Godot;
 using System;
-/*
 public partial class PlayerExample : CharacterBody3D
 {
 	[Export] public float CameraRotationSpeed = 250.0f;
@@ -48,9 +47,6 @@ public partial class PlayerExample : CharacterBody3D
 
 	private Vector3 _dashStartPosition;
 	private Vector3 _dashTargetPosition;
-
-
-	private Targetable _currentTarget;
 	private float _targetSearchTimer = 0.0f;
 
 	private Node3D _cameraRig;
@@ -75,17 +71,13 @@ public partial class PlayerExample : CharacterBody3D
 	GetNode<TextureRect>("TargetingUI/TargetReticle");
 
 		_targetReticle.Visible = false;
-
-		UpdateCameraPitch();
 	}
 
 	public override void _Process(double delta)
 	{
 		float dt = (float)delta;
 
-		HandleCameraRotation(dt);
-		HandleCameraZoom(dt);
-		UpdateTargetReticle();
+
 
 		_cameraRig.Position = Vector3.Zero;
 	}
@@ -94,8 +86,7 @@ public partial class PlayerExample : CharacterBody3D
 	{
 		float dt = (float)delta;
 
-		HandleTargeting(dt);
-		HandleDash(dt);
+
 
 		if (!_isDashing)
 		{
@@ -200,20 +191,6 @@ public partial class PlayerExample : CharacterBody3D
 		UpdateWallState();
 	}
 
-	private void HandleCameraRotation(float delta)
-	{
-		float horizontal = Input.GetAxis("camera_left", "camera_right");
-
-		_yaw -= horizontal * CameraRotationSpeed * delta;
-
-		_cameraRig.Rotation = new Vector3(
-			Mathf.DegToRad(_pitch),
-			Mathf.DegToRad(_yaw),
-			0
-		);
-	}
-
-
 	private void UpdateWallState()
 	{
 		_isTouchingWall = false;
@@ -235,75 +212,6 @@ public partial class PlayerExample : CharacterBody3D
 			}
 		}
 	}
-	private void HandleCameraZoom(float delta)
-	{
-		float zoomIn = Input.GetActionStrength("camera_up");
-		float zoomOut = Input.GetActionStrength("camera_down");
-
-		_zoom -= (zoomIn - zoomOut) * CameraZoomSpeed * delta;
-		_zoom = Mathf.Clamp(_zoom, MinZoom, MaxZoom);
-
-		_camera.Position = new Vector3(
-			0,
-			0,
-			_zoom
-		);
-
-		UpdateCameraPitch();
-	}
-
-	private void UpdateCameraPitch()
-	{
-		// 0 = completely zoomed in
-		// 1 = completely zoomed out
-		float zoomT = Mathf.InverseLerp(
-			MinZoom,
-			MaxZoom,
-			_zoom
-		);
-
-		_pitch = Mathf.Lerp(
-			ZoomedInPitch,
-			ZoomedOutPitch,
-			zoomT
-		);
-
-		_cameraRig.Rotation = new Vector3(
-			Mathf.DegToRad(_pitch),
-			Mathf.DegToRad(_yaw),
-			0
-		);
-	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	private void HandleDash(float delta)
-	{
-		if (!_isDashing)
-		{
-			if (Input.IsActionJustPressed("grapple"))
-			{
-				StartDash();
-			}
-
-			return;
-		}
-
-		UpdateDash(delta);
-	}
-
 	private void HandleJump()
 	{
 		if (!Input.IsActionJustPressed("jump"))
@@ -360,213 +268,10 @@ public partial class PlayerExample : CharacterBody3D
 		}
 	}
 
-	private void StartDash()
-	{
-		if (_currentTarget == null)
-			return;
-
-		if (!IsInstanceValid(_currentTarget))
-			return;
-
-		_dashStartPosition = GlobalPosition;
-		_dashTargetPosition = _currentTarget.GetDashPosition();
-
-		Vector3 toTarget =
-			_dashTargetPosition - _dashStartPosition;
-
-		float distance = toTarget.Length();
-
-		if (distance < 0.01f)
-			return;
-
-		Vector3 direction = toTarget.Normalized();
-
-		// Calculate how long the dash should take.
-
-		_dashDuration = Mathf.Min(
-		distance / (DashSpeed * 0.5f),
-		MaxDashDuration
-	);
-
-		_dashTimer = 0.0f;
-		_isDashing = true;
-	}
-
-	private void UpdateDash(float delta)
-	{
-		_dashTimer += delta;
-
-		float t = Mathf.Clamp(
-			_dashTimer / _dashDuration,
-			0.0f,
-			1.0f
-		);
-
-		// Ease into the dash.
-		float speedMultiplier = Mathf.SmoothStep(
-			0.0f,
-			1.0f,
-			Mathf.Clamp(
-				_dashTimer / DashAccelerationTime,
-				0.0f,
-				1.0f
-			)
-		);
-
-		Vector3 toTarget =
-			_dashTargetPosition - GlobalPosition;
-
-		float distanceRemaining = toTarget.Length();
-
-		if (distanceRemaining < 0.05f)
-		{
-			GlobalPosition = _dashTargetPosition;
-
-			_isDashing = false;
-			Velocity = Vector3.Zero;
-
-			return;
-		}
-
-		Vector3 direction =
-			toTarget.Normalized();
-
-		float speed =
-			DashSpeed * speedMultiplier;
-
-		// Never move farther than the target in one frame.
-		float movementDistance =
-			Mathf.Min(
-				speed * delta,
-				distanceRemaining
-			);
-
-		Velocity =
-			direction *
-			(movementDistance / delta);
-
-		MoveAndSlide();
-
-		if (_dashTimer >= _dashDuration)
-		{
-			_isDashing = false;
-			Velocity = Vector3.Zero;
-		}
-	}
+	
 
 
-	private void HandleTargeting(float delta)
-	{
-		_targetSearchTimer -= delta;
-
-		if (_targetSearchTimer > 0.0f)
-			return;
-
-		_targetSearchTimer = TargetSearchInterval;
-
-		Targetable bestTarget = FindBestTarget();
-
-		if (bestTarget == _currentTarget)
-			return;
-
-		_currentTarget?.SetTargeted(false);
-
-		_currentTarget = bestTarget;
-
-		_currentTarget?.SetTargeted(true);
-		GD.Print(_currentTarget.Name);
-	}
-	private Targetable FindBestTarget()
-	{
-		Targetable bestTarget = null;
-		float bestScore = float.MaxValue;
-
-		Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
-
-		// The center of the LEFT half of the screen.
-		float leftHalfCenterX = viewportSize.X * 0.25f;
-		float screenCenterY = viewportSize.Y * 0.5f;
-
-		foreach (Node node in GetTree().GetNodesInGroup("targetable"))
-		{
-			if (node is not Targetable target)
-				continue;
-
-			if (!IsInstanceValid(target))
-				continue;
-
-
-			// Don't target things that are too far away.
-			float distance = GlobalPosition.DistanceTo(
-				target.GlobalPosition
-			);
-
-			if (distance > MaxTargetDistance)
-				continue;
-
-			// Convert the target's 3D position to screen coordinates.
-			Vector2 screenPosition =
-				_camera.UnprojectPosition(target.GlobalPosition);
-
-			// Ignore targets behind the camera.
-			if (_camera.IsPositionBehind(target.GlobalPosition))
-				continue;
-
-			// Only consider the LEFT half of the screen.
-			if (screenPosition.X > viewportSize.X * 0.5f)
-				continue;
-
-			// Calculate how far the target is from the center
-			// of the left half of the screen.
-			float screenDistance = new Vector2(
-				screenPosition.X - leftHalfCenterX,
-				screenPosition.Y - screenCenterY
-			).Length();
-
-			// Normalize screen distance so resolution doesn't
-			// drastically affect the score.
-			float normalizedScreenDistance =
-				screenDistance / viewportSize.X;
-
-			// Combine screen position and world distance.
-			float score =
-				normalizedScreenDistance * 10.0f +
-				distance * 0.1f;
-
-			if (score < bestScore)
-			{
-				bestScore = score;
-				bestTarget = target;
-			}
-		}
-
-		return bestTarget;
-	}
-	private void UpdateTargetReticle()
-	{
-		if (_currentTarget == null ||
-			!IsInstanceValid(_currentTarget))
-		{
-			_targetReticle.Visible = false;
-			return;
-		}
-
-		Vector3 targetPosition = _currentTarget.GetTargetPosition();
-
-		if (_camera.IsPositionBehind(targetPosition))
-		{
-			_targetReticle.Visible = false;
-			return;
-		}
-
-		Vector2 screenPosition =
-			_camera.UnprojectPosition(targetPosition);
-
-		_targetReticle.Position =
-			screenPosition - (_targetReticle.Size / 2.0f);
-
-		_targetReticle.Visible = true;
-	}
+	
 	private bool IsTouchingWall()
 	{
 		for (int i = 0; i < GetSlideCollisionCount(); i++)

@@ -1,3 +1,19 @@
+Yes. The code is already reasonably structured, but I’d clean it up around a few principles:
+
+* Group exported settings logically.
+* Use consistent C# naming (`PascalCase` for constants/config fields, `_camelCase` for private state).
+* Keep the camera-mode logic together.
+* Avoid unnecessary temporary variables.
+* Use `Mathf.Clamp` consistently with Godot floats.
+* Rename a few fields to make their purpose clearer.
+* Centralize camera position updates.
+* Make the processing order a little more intuitive.
+* Remove `_playerTargetAlpha`, since it isn't used.
+* Keep the fade and pitch-transition behavior intact.
+
+Here’s a cleaned-up version that preserves the existing behavior:
+
+```csharp
 using Godot;
 
 public partial class PlayerCamRig : Node3D
@@ -15,7 +31,7 @@ public partial class PlayerCamRig : Node3D
 
     [Export] private Camera3D _camera;
     [Export] private MeshInstance3D _player;
-    [Export] private MeshInstance3D _playerShadowMesh;
+
     // -------------------------------------------------------------------------
     // Camera Distances
     // -------------------------------------------------------------------------
@@ -39,9 +55,9 @@ public partial class PlayerCamRig : Node3D
     // Camera Pitch Limits
     // -------------------------------------------------------------------------
 
-    [Export] private Vector2 _firstPersonPitchLimits = new(-89f, 89f);
-    [Export] private Vector2 _closeUpPitchLimits = new(-89f, 50f);
-    [Export] private Vector2 _lakituPitchLimits = new(-89f, 25f);
+    [Export] private Vector2 _firstPersonPitchLimits = new(-90f, 90f);
+    [Export] private Vector2 _closeUpPitchLimits = new(-90f, 50f);
+    [Export] private Vector2 _lakituPitchLimits = new(-90f, 17f);
 
     // -------------------------------------------------------------------------
     // Player Fade
@@ -96,8 +112,7 @@ public partial class PlayerCamRig : Node3D
 
     private void InitializeRig()
     {
-        //Note/Todo: Rewrite this to account for different rig starting heights for characters, vehicles, etc.
-        Position = new Vector3(0f, 1.744f, 0f);
+        Position = new Vector3(0f, 2.345f, 0f);
 
         _rigPitch = Rotation.X;
         _rigYaw = Rotation.Y;
@@ -130,26 +145,8 @@ public partial class PlayerCamRig : Node3D
 
         transparentMaterial.Transparency =
             BaseMaterial3D.TransparencyEnum.Alpha;
-        transparentMaterial.DepthDrawMode =
-            BaseMaterial3D.DepthDrawModeEnum.Always;
 
         _player.SetSurfaceOverrideMaterial(0, transparentMaterial);
-
-
-        if (_player.GetActiveMaterial(1) is not StandardMaterial3D material2)
-            return;
-
-        var transparentMaterial2 = (StandardMaterial3D)material2.Duplicate();
-
-        transparentMaterial2.Transparency =
-            BaseMaterial3D.TransparencyEnum.Alpha;
-        transparentMaterial2.DepthDrawMode =
-            BaseMaterial3D.DepthDrawModeEnum.Always;
-
-        _player.SetSurfaceOverrideMaterial(1, transparentMaterial2);
-
-
-        _playerShadowMesh.CastShadow = GeometryInstance3D.ShadowCastingSetting.ShadowsOnly;
     }
 
     // -------------------------------------------------------------------------
@@ -163,7 +160,6 @@ public partial class PlayerCamRig : Node3D
 
         if (Input.IsActionJustPressed("cam_out"))
             SetCameraMode(_cameraMode + 1);
-
     }
 
     private void SetCameraMode(CamMode mode)
@@ -175,6 +171,7 @@ public partial class PlayerCamRig : Node3D
 
         _previousCameraMode = _cameraMode;
         _cameraMode = mode;
+
         UpdateCameraTargets();
     }
 
@@ -384,13 +381,45 @@ public partial class PlayerCamRig : Node3D
         if (_player.GetActiveMaterial(0) is not StandardMaterial3D material)
             return;
 
-        if(alpha >= 1)
-            _playerShadowMesh.Visible = true;
-        else
-            _playerShadowMesh.Visible = false;
-
         Color color = material.AlbedoColor;
         color.A = alpha;
         material.AlbedoColor = color;
     }
 }
+```
+
+### A few notable improvements
+
+**1. The exports are much easier to navigate in the Godot inspector.**
+They're now grouped into distances, movement, pitch, and fading.
+
+**2. `_targetCameraX` became `_targetCameraHorizontalOffset`.**
+`X` isn't particularly descriptive when you're looking at the code six months later.
+
+**3. `_playerTargetAlpha` was removed.**
+It was declared but never actually used.
+
+**4. Camera-mode changes are centralized.**
+Instead of having `SetCameraMode()` know about every individual target:
+
+```csharp
+_targetCameraDistance = GetCameraDistance();
+_targetPitchLimits = GetPitchLimits();
+_targetCameraX = GetCameraHorizontalOffset();
+```
+
+it now simply does:
+
+```csharp
+UpdateCameraTargets();
+```
+
+That makes adding another camera target later less error-prone.
+
+**5. Rotation logic is separated from pitch correction.**
+`HandleRotationInput()` now describes the high-level operation, while `CorrectPitchIfOutOfBounds()` handles the constraint.
+
+**6. I added a guard against a possible zero fade range.**
+This avoids dividing by zero if `GetCameraDistance()` ever equals `_playerFadeInDistance`.
+
+One thing I'd consider as a **next-level refactor** is replacing the three separate distance/pitch/offset switch statements with a small `CameraModeSettings` struct/dictionary. That would make adding a fourth camera mode substantially cleaner.
