@@ -1,71 +1,74 @@
 using Godot;
 
-public partial class Player : CharacterBody3D
+/// <summary>
+/// This script controls the physics for the player specifically. 
+/// </summary>
+/// <remarks>
+/// In the future, it may be best to genralize this script and split out the inputs.
+/// It also does not currently integrate with Godot's built-in physics engine
+/// for things such as gravity. This gives us very finite control, at some potential technical debt.
+/// </remarks>
+public partial class PlayerPhysics : Node3D
 {
+    /// <summary>
+    /// Enum for holding jump types/states.
+    /// </summary>
+    /// <remarks>
+    /// The 'Bonus' type is currently used for both air jumps and wall jumps.  
+    /// </remarks>
     private enum JumpType
     {
         None,
-        Standard,
-        Backflip
+        Grounded,
+        Bonus
     }
-
     private JumpType _jumpType = JumpType.None;
 
-    [Export] public float MoveSpeed = 12.0f;
-    [Export] public float FallingMoveSpeed = 9.0f;
 
+    [ExportGroup("References")]
+    [Export] private Camera3D _camera;
+    [Export] private PackedScene WallJumpEffect;
+    [Export] private Skeleton3D _meshSkeleton;
+    [Export] private AnimationPlayer _animationPlayer;
+    [Export] private CharacterBody3D parent;
 
-    [Export] public float JumpVelocity = 20.0f;
-
-    // Gravity settings
+    [ExportGroup("Gravity")]
     [Export] public float Gravity = 50.0f;
     [Export] public float MaxGravity = 200.0f;
     [Export] public float TerminalVelocity = 50.0f;
     [Export] public float GravityExponent = 4.0f;
 
-
+    [ExportGroup("Speed and Jumps")]
+    [Export] public float MoveSpeed = 12.0f;
+    [Export] public float FallingMoveSpeed = 9.0f;
+    [Export] public float JumpVelocity = 20.0f;
+    [Export] public float TurnSpeed = 12.0f;
     [Export] public float WallJumpUpVelocity = 20.0f;
     [Export] public float WallJumpHorizontalVelocity = 30.0f;
     [Export] public float WallJumpHorizontalDuration = 0.35f;
 
-    [Export] private Camera3D _camera;
-    [Export] private PackedScene WallJumpEffect;
-    [Export] private Skeleton3D _meshSkeleton;
-    [Export] private AnimationPlayer _animationPlayer;
-
-
-    [Export] public float TurnSpeed = 12.0f;
 
     private Vector3 _wallNormal = Vector3.Zero;
-    private bool _isTouchingWall = false;
-
-    // Wall-jump momentum
     private Vector3 _wallJumpVelocity = Vector3.Zero;
+    private bool _isTouchingWall = false;
+    // Wall-jump momentum
     private float _wallJumpTimer = 0.0f;
-
-    // Allows one additional jump while airborne.
     private bool _hasAirJump = true;
-
-    public override void _Ready()
-    {
-    }
 
     public override void _PhysicsProcess(double delta)
     {
-        float dt = (float)delta;
-
-        HandleMovement(dt);
-        MoveAndSlide();
-
-
+        HandleMovement((float) delta);
+        parent.MoveAndSlide();
         // Update wall state AFTER movement so we know
         // what we actually collided with this frame.
         UpdateWallState();
-
         UpdateAnimation();
     }
 
-
+    /// <summary>
+    /// Handles movement for the current frame. Calls a number of helper functions.
+    /// </summary>
+    /// <param name="delta">(float) This frame's delta, per _process().</param>
     private void HandleMovement(float delta)
     {
         HandleHorizontalMovement(delta);
@@ -73,6 +76,10 @@ public partial class Player : CharacterBody3D
         HandleJump();
     }
 
+    /// <summary>
+    /// Handles horizontal movement, including the momentum from wall jumps.
+    /// </summary>
+    /// <param name="delta">(float) This frame's delta, per _process().</param>
     private void HandleHorizontalMovement(float delta)
     {
         Vector2 input = Input.GetVector(
@@ -99,9 +106,9 @@ public partial class Player : CharacterBody3D
         if (direction.LengthSquared() > 1.0f)
             direction = direction.Normalized();
         Vector3 facingDirection = new Vector3(
-            Velocity.X,
+            parent.Velocity.X,
             0.0f,
-            Velocity.Z
+            parent.Velocity.Z
         );
 
         if (facingDirection.LengthSquared() > 0.001f)
@@ -117,10 +124,6 @@ public partial class Player : CharacterBody3D
                 targetBasis,
                 1.0f - Mathf.Exp(-TurnSpeed * delta)
             );
-            /*_shadowMesh.GlobalBasis = _shadowMesh.GlobalBasis.Slerp(
-                targetBasis,
-                1.0f - Mathf.Exp(-TurnSpeed * delta)
-            );*/
         }
 
 
@@ -141,9 +144,9 @@ public partial class Player : CharacterBody3D
             Vector3 wallVelocity =
                 _wallJumpVelocity * strength;
 
-            Velocity = new Vector3(
+            parent.Velocity = new Vector3(
                 wallVelocity.X,
-                Velocity.Y,
+                parent.Velocity.Y,
                 wallVelocity.Z
             );
 
@@ -155,7 +158,7 @@ public partial class Player : CharacterBody3D
         // --------------------------------
 
         float maxHorizontalSpeed =
-            Velocity.Y < 0.0f
+            parent.Velocity.Y < 0.0f
                 ? FallingMoveSpeed
                 : MoveSpeed;
 
@@ -167,19 +170,27 @@ public partial class Player : CharacterBody3D
                 direction * maxHorizontalSpeed;
         }
 
-        Velocity = new Vector3(
+        parent.Velocity = new Vector3(
             horizontalVelocity.X,
-            Velocity.Y,
+            parent.Velocity.Y,
             horizontalVelocity.Z
         );
     }
 
+    /// <summary>
+    /// Handles gravity for the current frame. 
+    /// </summary>
+    /// <param name="delta">This frame's delta, per _process().</param>
+    /// <remarks>
+    /// We likely want to replace/update this later on for more finite control over the gravity
+    /// to get a real nice, smooth, "feely" gravity. Like, crisp and clean, fine tuned.
+    /// </remarks>
     private void HandleGravity(float delta)
     {
-        if (!IsOnFloor())
+        if (!parent.IsOnFloor())
         {
             // Only care about downward velocity.
-            float fallSpeed = Mathf.Max(-Velocity.Y, 0.0f);
+            float fallSpeed = Mathf.Max(-parent.Velocity.Y, 0.0f);
 
             // Convert fall speed into a 0-1 range.
             float fallProgress = Mathf.Clamp(
@@ -205,8 +216,9 @@ public partial class Player : CharacterBody3D
                 gravityProgress
             );
 
+
             float newVelocityY =
-                Velocity.Y - currentGravity * delta;
+                parent.Velocity.Y - currentGravity * delta;
 
             // Never exceed terminal velocity.
             newVelocityY = Mathf.Max(
@@ -214,22 +226,25 @@ public partial class Player : CharacterBody3D
                 -TerminalVelocity
             );
 
-            Velocity = new Vector3(
-                Velocity.X,
+            parent.Velocity = new Vector3(
+                parent.Velocity.X,
                 newVelocityY,
-                Velocity.Z
+                parent.Velocity.Z
             );
         }
-        else if (Velocity.Y < 0.0f)
+        else if (parent.Velocity.Y < 0.0f)
         {
-            Velocity = new Vector3(
-                Velocity.X,
+            parent.Velocity = new Vector3(
+                parent.Velocity.X,
                 0.0f,
-                Velocity.Z
+                parent.Velocity.Z
             );
         }
     }
 
+    /// <summary>
+    /// Handles jumping. If the jump button isn't pressed, this does nothing on the current frame.
+    /// </summary>
     private void HandleJump()
     {
         if (!Input.IsActionJustPressed("jump"))
@@ -239,18 +254,18 @@ public partial class Player : CharacterBody3D
         // GROUND JUMP
         // --------------------------------
 
-        if (IsOnFloor())
+        if (parent.IsOnFloor())
         {
-            Velocity = new Vector3(
-                Velocity.X,
+            parent.Velocity = new Vector3(
+                parent.Velocity.X,
                 JumpVelocity,
-                Velocity.Z
+                parent.Velocity.Z
             );
 
             // Refresh the air jump.
             _hasAirJump = true;
 
-            _jumpType = JumpType.Standard;
+            _jumpType = JumpType.Grounded;
 
             return;
         }
@@ -267,7 +282,7 @@ public partial class Player : CharacterBody3D
             _wallJumpTimer =
                 WallJumpHorizontalDuration;
 
-            Velocity = new Vector3(
+            parent.Velocity = new Vector3(
                 _wallJumpVelocity.X,
                 WallJumpUpVelocity,
                 _wallJumpVelocity.Z
@@ -277,7 +292,7 @@ public partial class Player : CharacterBody3D
             // their air jump back.
             _hasAirJump = true;
 
-            _jumpType = JumpType.Backflip;
+            _jumpType = JumpType.Bonus;
 
             SpawnWallJumpEffect(_wallNormal);
 
@@ -290,32 +305,39 @@ public partial class Player : CharacterBody3D
 
         if (_hasAirJump)
         {
-            Velocity = new Vector3(
-                Velocity.X,
+            parent.Velocity = new Vector3(
+                parent.Velocity.X,
                 JumpVelocity,
-                Velocity.Z
+                parent.Velocity.Z
             );
 
             _hasAirJump = false;
 
-            _jumpType = JumpType.Backflip;
+            _jumpType = JumpType.Bonus;
 
             SpawnWallJumpEffect(Vector3.Down);
         }
     }
 
+    /// <summary>
+    /// Updates the current animation.
+    /// </summary>
+    /// <remarks>
+    /// This is another area to really fine-tune. Right now it's super basic.
+    /// No smoothing, no super dynamic animations, just really rough righ tnow.
+    /// </remarks>
     private void UpdateAnimation()
     {
         // --------------------------------
         // ON GROUND
         // --------------------------------
 
-        if (IsOnFloor())
+        if (parent.IsOnFloor())
         {
             Vector3 horizontalVelocity = new Vector3(
-                Velocity.X,
+                parent.Velocity.X,
                 0.0f,
-                Velocity.Z
+                parent.Velocity.Z
             );
 
             if (horizontalVelocity.LengthSquared() > 0.01f)
@@ -336,7 +358,7 @@ public partial class Player : CharacterBody3D
         // IN AIR
         // --------------------------------
 
-        if (_jumpType == JumpType.Backflip)
+        if (_jumpType == JumpType.Bonus)
         {
             PlayAnimation("NinjaAnims/Backflip");
         }
@@ -345,6 +367,10 @@ public partial class Player : CharacterBody3D
             PlayAnimation("NinjaAnims/Jump");
         }
     }
+    /// <summary>
+    /// Plays an animation with a given name.
+    /// </summary>
+    /// <param name="animationName">(string) A name matching an animation in the animation player's library.</param>
     private void PlayAnimation(string animationName)
     {
         if (_animationPlayer.CurrentAnimation != animationName)
@@ -354,15 +380,19 @@ public partial class Player : CharacterBody3D
     }
 
 
+    /// <summary>
+    /// Updtes the wall state. Starts by setting the player as not touching a wall,
+    /// then checks to see if they are.
+    /// </summary>
     private void UpdateWallState()
     {
         _isTouchingWall = false;
         _wallNormal = Vector3.Zero;
 
-        for (int i = 0; i < GetSlideCollisionCount(); i++)
+        for (int i = 0; i < parent.GetSlideCollisionCount(); i++)
         {
             KinematicCollision3D collision =
-                GetSlideCollision(i);
+                parent.GetSlideCollision(i);
 
             Vector3 normal = collision.GetNormal();
 
@@ -376,6 +406,10 @@ public partial class Player : CharacterBody3D
         }
     }
 
+    /// <summary>
+    /// Spawns the little effect that plays when a player wall jumps. 
+    /// </summary>
+    /// <param name="normal">(Vector3) The normal of the wall that they're jumping off of.</param>
     private void SpawnWallJumpEffect(Vector3 normal)
     {
         if (WallJumpEffect == null)
@@ -386,7 +420,7 @@ public partial class Player : CharacterBody3D
         GetTree().CurrentScene.AddChild(effect);
 
         effect.Initialize(
-            GlobalPosition,
+            parent.GlobalPosition,
             normal,
             Vector3.Down
         );
@@ -396,7 +430,7 @@ public partial class Player : CharacterBody3D
         GetTree().CurrentScene.AddChild(effect);
 
         effect.Initialize(
-            GlobalPosition,
+            parent.GlobalPosition,
             normal,
             Vector3.Left
         );

@@ -1,6 +1,6 @@
 [gd_scene load_steps=14 format=4 uid="uid://dhgxvn2e8g6ka"]
 
-[ext_resource type="Script" uid="uid://dhqtyic0irubs" path="res://scenes/player/Player.cs" id="1_8afob"]
+[ext_resource type="Script" uid="uid://d0i80g5g2tbbh" path="res://scenes/player/PlayerPhysics.cs" id="1_8afob"]
 [ext_resource type="PackedScene" uid="uid://o6wbagq0bpo5" path="res://assets/Katana/katana.tscn" id="2_dovo2"]
 [ext_resource type="Script" uid="uid://dvorognd2ggiy" path="res://scenes/player/PlayerCamRig.cs" id="2_gmlin"]
 [ext_resource type="PackedScene" uid="uid://bkuybyi8vf7o0" path="res://assets/impact.tscn" id="2_lvxji"]
@@ -283,14 +283,7 @@ _data = {
 &"Run": ExtResource("9_gx1jg")
 }
 
-[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("_camera", "_meshSkeleton", "_animationPlayer")]
-script = ExtResource("1_8afob")
-FallingMoveSpeed = 10.0
-_camera = NodePath("CameraRig/PlayerCam")
-WallJumpEffect = ExtResource("2_lvxji")
-_meshSkeleton = NodePath("Skeleton3D")
-_animationPlayer = NodePath("AnimationPlayer")
-TurnSpeed = 24.0
+[node name="Player" type="CharacterBody3D"]
 
 [node name="Skeleton3D" type="Skeleton3D" parent="."]
 bones/0/name = "mixamorig_Hips"
@@ -853,3 +846,11 @@ shape = SubResource("CapsuleShape3D_dovo2")
 libraries = {
 &"NinjaAnims": SubResource("AnimationLibrary_fcs02")
 }
+
+[node name="PhysicsController" type="Node3D" parent="." node_paths=PackedStringArray("_camera", "_meshSkeleton", "_animationPlayer", "parent")]
+script = ExtResource("1_8afob")
+_camera = NodePath("../CameraRig/PlayerCam")
+WallJumpEffect = ExtResource("2_lvxji")
+_meshSkeleton = NodePath("../Skeleton3D")
+_animationPlayer = NodePath("../AnimationPlayer")
+parent = NodePath("..")
