@@ -1,6 +1,7 @@
-[gd_scene load_steps=15 format=3 uid="uid://1dysdhlhkkoq"]
+[gd_scene load_steps=16 format=3 uid="uid://1dysdhlhkkoq"]
 
 [ext_resource type="PackedScene" uid="uid://dhgxvn2e8g6ka" path="res://scenes/player/player.tscn" id="1_ybdod"]
+[ext_resource type="PackedScene" uid="uid://c3svvjnool01v" path="res://scenes/target/target_point.tscn" id="2_2s55i"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_2s55i"]
 size = Vector3(2.9892578, 0.4951172, 2.9841614)
@@ -91,3 +92,6 @@ shape = SubResource("BoxShape3D_ybdod")
 [node name="MeshInstance3D" type="MeshInstance3D" parent="pillar2/CollisionShape3D"]
 mesh = SubResource("BoxMesh_2s55i")
 surface_material_override/0 = SubResource("StandardMaterial3D_o3n0h")
+
+[node name="Target" parent="." instance=ExtResource("2_2s55i")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.592024, 15.1523075, 8.718852)

@@ -1,0 +1,3 @@
+[gd_scene format=3 uid="uid://c3svvjnool01v"]
+
+[node name="TargetPoint" type="Node3D"]
