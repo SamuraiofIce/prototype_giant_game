@@ -1,0 +1,38 @@
+States (Grouped by category)
+	- Damaged (Ground)
+		- Ragdoll 
+		- Tech ground
+		- Stand up
+	- Damaged (Air)
+		- Ragdoll
+		- Aerial Recovery
+		- Collide with surface
+		- Tech Surface
+	- Ground
+		- Idle
+		- Walk
+		- Run
+		- Melee Combat
+		- Aim
+		- Grapple
+		- Grab
+	- Climb
+		- Hold Soft
+		- Hold Hard
+		- Climb Soft
+		- Climb Hard
+		- Climb Jump Forward/Up
+		- Climb Jump Off
+		- Surface Stab
+		- Aim
+		- Grapple
+		- Brace Hold Hard
+		- Brace Hold Soft
+	- Air
+		- Double Jump
+		- Wall Jump
+		- Grapple
+		- Air Dash
+		- Spin Slash
+		- Aim Ranged Weapon
+		- Grab
