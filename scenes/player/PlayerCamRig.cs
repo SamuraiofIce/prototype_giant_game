@@ -25,6 +25,8 @@ public partial class PlayerCamRig : Node3D
     [Export] private Camera3D _camera;
     [Export] private MeshInstance3D _player;
     [Export] private MeshInstance3D _playerShadowMesh;
+    [Export] private StateMachine _stateMachine;
+
     // -------------------------------------------------------------------------
     // Camera Distances
     // -------------------------------------------------------------------------
@@ -362,6 +364,17 @@ public partial class PlayerCamRig : Node3D
 
         float verticalInput =
             Input.GetAxis("cam_up", "cam_down");
+
+        /* QwenQwen genned this, this might not be bad later, but we'll have to see first.
+        // Adjust camera based on current state if needed
+        if (_stateMachine != null && _stateMachine.GetCurrentState() != null)
+        {
+            BaseState currentState = _stateMachine.GetCurrentState();
+            
+            // Let the current state handle its own camera adjustments
+            currentState.HandleInput(delta);
+        }
+        */
 
         _rigYaw -= horizontalInput * rotationAmount;
         _rigPitch -= verticalInput * rotationAmount;

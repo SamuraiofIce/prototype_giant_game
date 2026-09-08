@@ -31,6 +31,7 @@ public partial class PlayerPhysics : Node3D
     [Export] private Skeleton3D _meshSkeleton;
     [Export] private AnimationPlayer _animationPlayer;
     [Export] private CharacterBody3D parent;
+    [Export] private StateMachine _stateMachine;
 
     [ExportGroup("Gravity")]
     [Export] public float Gravity = 50.0f;
@@ -54,6 +55,41 @@ public partial class PlayerPhysics : Node3D
     // Wall-jump momentum
     private float _wallJumpTimer = 0.0f;
     private bool _hasAirJump = true;
+
+    public override void _Process(double delta)
+    {
+        HandleInput((float) delta);
+    }
+
+    /// <summary>
+    /// Handles input for the current state.
+    /// </summary>
+    /// <param name="delta">Time since last frame.</param>
+    private void HandleInput(float delta)
+    {
+        // Check if we have a state machine and current state
+        if (_stateMachine != null && _stateMachine.GetCurrentState() != null)
+        {
+            BaseState currentState = _stateMachine.GetCurrentState();
+            
+            // Let the current state handle its own input
+            currentState.HandleInput(delta);
+        }
+        else
+        {
+            // Default movement handling if no state is active
+            HandleDefaultMovement(delta);
+        }
+    }
+
+    /// <summary>
+    /// Handles default movement when no state is active.
+    /// </summary>
+    /// <param name="delta">Time since last frame.</param>
+    private void HandleDefaultMovement(float delta)
+    {
+        // Default movement handling (can be removed once all states are implemented)
+    }
 
     public override void _PhysicsProcess(double delta)
     {
@@ -82,6 +118,15 @@ public partial class PlayerPhysics : Node3D
     /// <param name="delta">(float) This frame's delta, per _process().</param>
     private void HandleHorizontalMovement(float delta)
     {
+        // Check if we have a state machine and current state
+        if (_stateMachine != null && _stateMachine.GetCurrentState() != null)
+        {
+            BaseState currentState = _stateMachine.GetCurrentState();
+            
+            // Let the current state handle its own movement
+            currentState.HandleInput(delta);
+        }
+
         Vector2 input = Input.GetVector(
             "move_left",
             "move_right",

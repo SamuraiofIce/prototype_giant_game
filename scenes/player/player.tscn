@@ -847,6 +847,8 @@ libraries = {
 &"NinjaAnims": SubResource("AnimationLibrary_fcs02")
 }
 
+[node name="StateMachine" type="Node3D" parent="."]
+
 [node name="PhysicsController" type="Node3D" parent="." node_paths=PackedStringArray("_camera", "_meshSkeleton", "_animationPlayer", "parent")]
 script = ExtResource("1_8afob")
 _camera = NodePath("../CameraRig/PlayerCam")
