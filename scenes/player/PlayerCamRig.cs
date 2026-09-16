@@ -25,7 +25,6 @@ public partial class PlayerCamRig : Node3D
     [Export] private Camera3D _camera;
     [Export] private MeshInstance3D _player;
     [Export] private MeshInstance3D _playerShadowMesh;
-    [Export] private StateMachine _stateMachine;
 
     // -------------------------------------------------------------------------
     // Camera Distances

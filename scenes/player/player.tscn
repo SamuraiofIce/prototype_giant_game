@@ -1,14 +1,16 @@
-[gd_scene load_steps=14 format=4 uid="uid://dhgxvn2e8g6ka"]
+[gd_scene load_steps=16 format=4 uid="uid://dhgxvn2e8g6ka"]
 
-[ext_resource type="Script" uid="uid://d0i80g5g2tbbh" path="res://scenes/player/PlayerPhysics.cs" id="1_8afob"]
+[ext_resource type="Script" uid="uid://3uqsfpy1akax" path="res://scenes/player/Player.cs" id="1_qek5x"]
 [ext_resource type="PackedScene" uid="uid://o6wbagq0bpo5" path="res://assets/Katana/katana.tscn" id="2_dovo2"]
 [ext_resource type="Script" uid="uid://dvorognd2ggiy" path="res://scenes/player/PlayerCamRig.cs" id="2_gmlin"]
-[ext_resource type="PackedScene" uid="uid://bkuybyi8vf7o0" path="res://assets/impact.tscn" id="2_lvxji"]
 [ext_resource type="ArrayMesh" uid="uid://bwrvu64f8ms81" path="res://assets/Player/Mesh/Kachujin.res" id="3_5gtgg"]
 [ext_resource type="Animation" uid="uid://c6myenlm65hx" path="res://assets/Player/Anims/Backflip.res" id="6_h17s1"]
 [ext_resource type="Animation" uid="uid://bs5pxmy76a0nn" path="res://assets/Player/Anims/Idle.res" id="7_je7p5"]
 [ext_resource type="Animation" uid="uid://dfx50b21tfxta" path="res://assets/Player/Anims/Jump.res" id="8_fm80t"]
+[ext_resource type="Script" uid="uid://c6niwc5hsehdt" path="res://scenes/BaseStateMachine.cs" id="9_5gtgg"]
 [ext_resource type="Animation" uid="uid://bw5r3wkdhy7hx" path="res://assets/Player/Anims/Run.res" id="9_gx1jg"]
+[ext_resource type="Script" uid="uid://b7y21wft3l2pd" path="res://scenes/states/IdleState.cs" id="10_h17s1"]
+[ext_resource type="Script" uid="uid://kdysthpr4ff6" path="res://scenes/states/JumpState.cs" id="11_je7p5"]
 
 [sub_resource type="Skin" id="Skin_ugbui"]
 resource_name = "Skin"
@@ -283,14 +285,18 @@ _data = {
 &"Run": ExtResource("9_gx1jg")
 }
 
-[node name="Player" type="CharacterBody3D"]
+[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("_camera", "_meshSkeleton", "_animationPlayer")]
+script = ExtResource("1_qek5x")
+_camera = NodePath("CameraRig/PlayerCam")
+_meshSkeleton = NodePath("Skeleton3D")
+_animationPlayer = NodePath("AnimationPlayer")
 
 [node name="Skeleton3D" type="Skeleton3D" parent="."]
 bones/0/name = "mixamorig_Hips"
 bones/0/parent = -1
 bones/0/rest = Transform3D(1, -1.7453292e-06, 0, 1.7453292e-06, 1, 0, 0, 0, 1, 0.00072945945, 1.140494, 0.010430105)
 bones/0/enabled = true
-bones/0/position = Vector3(-0.06736523, 1.7320664, -0.07395488)
+bones/0/position = Vector3(-0.067, 1.082, -0.074)
 bones/0/rotation = Quaternion(-0.18395053, -0.29137525, 0.05825057, 0.9369469)
 bones/0/scale = Vector3(1, 1, 1)
 bones/1/name = "mixamorig_Spine"
@@ -847,12 +853,21 @@ libraries = {
 &"NinjaAnims": SubResource("AnimationLibrary_fcs02")
 }
 
-[node name="StateMachine" type="Node3D" parent="."]
-
-[node name="PhysicsController" type="Node3D" parent="." node_paths=PackedStringArray("_camera", "_meshSkeleton", "_animationPlayer", "parent")]
-script = ExtResource("1_8afob")
-_camera = NodePath("../CameraRig/PlayerCam")
-WallJumpEffect = ExtResource("2_lvxji")
-_meshSkeleton = NodePath("../Skeleton3D")
+[node name="StateMachine" type="Node" parent="." node_paths=PackedStringArray("_animationPlayer", "_meshSkeleton", "_mesh", "_shadowMesh", "_characterBody")]
+script = ExtResource("9_5gtgg")
 _animationPlayer = NodePath("../AnimationPlayer")
-parent = NodePath("..")
+_meshSkeleton = NodePath("../Skeleton3D")
+_mesh = NodePath("../Skeleton3D/Kachujin")
+_shadowMesh = NodePath("../Skeleton3D/ShadowMesh")
+_characterBody = NodePath("..")
+
+[node name="IdleState" type="Node" parent="StateMachine" node_paths=PackedStringArray("Character")]
+script = ExtResource("10_h17s1")
+Character = NodePath("../..")
+StateName = "Idle"
+
+[node name="JumpState" type="Node" parent="StateMachine" node_paths=PackedStringArray("Character")]
+script = ExtResource("11_je7p5")
+Character = NodePath("../..")
+AnimationName = "NinjaAnims/Jump"
+StateName = "Jump"
