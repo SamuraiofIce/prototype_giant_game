@@ -13,7 +13,14 @@ public partial class Target : Node3D
 
     public override void _Ready()
     {
-        AddToGroup("targetable");
+        AddToGroup("targets");
+    }
+    public Vector3 GetTargetPosition()
+    {
+        if (TargetPoint != null)
+            return TargetPoint.GlobalPosition;
+
+        return GlobalPosition;
     }
     public virtual void SetTargeted(bool targeted)
     {

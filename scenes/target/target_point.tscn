@@ -1,3 +1,6 @@
-[gd_scene format=3 uid="uid://c3svvjnool01v"]
+[gd_scene load_steps=2 format=3 uid="uid://c3svvjnool01v"]
+
+[ext_resource type="Script" uid="uid://d10k23hlxp7vi" path="res://scenes/target/Target.cs" id="1_1avbm"]
 
 [node name="TargetPoint" type="Node3D"]
+script = ExtResource("1_1avbm")

@@ -13,10 +13,6 @@ public partial class JumpState : BaseState
         Character._animationPlayer.Play("NinjaAnims/Jump");
         
     }
-    public override void _Process(double delta)
-    {
-        
-    }
 
     public override void _UpdatePhysics(float delta)
     {

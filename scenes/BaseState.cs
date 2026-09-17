@@ -118,7 +118,6 @@ public abstract partial class BaseState : Node
 
         if (Input.IsActionJustPressed("jump"))
         {
-            GD.Print("Got Jump Input");
             Machine.TransitionTo("Jump");
         }
     }

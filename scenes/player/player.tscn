@@ -1,9 +1,11 @@
-[gd_scene load_steps=16 format=4 uid="uid://dhgxvn2e8g6ka"]
+[gd_scene load_steps=18 format=4 uid="uid://dhgxvn2e8g6ka"]
 
 [ext_resource type="Script" uid="uid://3uqsfpy1akax" path="res://scenes/player/Player.cs" id="1_qek5x"]
 [ext_resource type="PackedScene" uid="uid://o6wbagq0bpo5" path="res://assets/Katana/katana.tscn" id="2_dovo2"]
 [ext_resource type="Script" uid="uid://dvorognd2ggiy" path="res://scenes/player/PlayerCamRig.cs" id="2_gmlin"]
 [ext_resource type="ArrayMesh" uid="uid://bwrvu64f8ms81" path="res://assets/Player/Mesh/Kachujin.res" id="3_5gtgg"]
+[ext_resource type="Script" uid="uid://lg3j2mcjwqfh" path="res://scenes/player/PlayerUI.cs" id="5_gx1jg"]
+[ext_resource type="Texture2D" uid="uid://b5lsj2ntsy8tw" path="res://assets/reticle.png" id="6_gx1jg"]
 [ext_resource type="Animation" uid="uid://c6myenlm65hx" path="res://assets/Player/Anims/Backflip.res" id="6_h17s1"]
 [ext_resource type="Animation" uid="uid://bs5pxmy76a0nn" path="res://assets/Player/Anims/Idle.res" id="7_je7p5"]
 [ext_resource type="Animation" uid="uid://dfx50b21tfxta" path="res://assets/Player/Anims/Jump.res" id="8_fm80t"]
@@ -842,7 +844,15 @@ _playerShadowMesh = NodePath("../Skeleton3D/ShadowMesh")
 [node name="PlayerCam" type="Camera3D" parent="CameraRig"]
 current = true
 
-[node name="UI" type="CanvasGroup" parent="CameraRig/PlayerCam"]
+[node name="UI" type="CanvasGroup" parent="CameraRig/PlayerCam" node_paths=PackedStringArray("_targetReticle", "_camera")]
+script = ExtResource("5_gx1jg")
+_targetReticle = NodePath("TextureRect")
+_camera = NodePath("..")
+
+[node name="TextureRect" type="TextureRect" parent="CameraRig/PlayerCam/UI"]
+offset_right = 40.0
+offset_bottom = 40.0
+texture = ExtResource("6_gx1jg")
 
 [node name="PlayerHitbox" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)

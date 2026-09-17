@@ -94,4 +94,7 @@ mesh = SubResource("BoxMesh_2s55i")
 surface_material_override/0 = SubResource("StandardMaterial3D_o3n0h")
 
 [node name="Target" parent="." instance=ExtResource("2_2s55i")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.592024, 15.1523075, 8.718852)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.833847, 97.9413, 8.718852)
+
+[node name="TargetPoint" parent="." instance=ExtResource("2_2s55i")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.552643, 16.680176, 2.2593994)
