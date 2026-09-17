@@ -10,7 +10,7 @@ public partial class JumpState : BaseState
     {
         legTimer = 0;
         jumpStarted = false;
-        Character._animationPlayer.Play("NinjaAnims/Jump");
+        base.OnStateBegin();
         
     }
 

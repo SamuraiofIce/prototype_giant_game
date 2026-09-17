@@ -2,9 +2,11 @@ using Godot;
 
 public partial class IdleState : BaseState
 {
-
-    public override void OnStateBegin()
+    protected override void HandleInput(float delta)
     {
-        Character._animationPlayer.Play(AnimationName);
+        if (Input.IsActionJustPressed("dash") && Machine.TransitionTo("Dash"))
+            return;
+            
+        base.HandleInput(delta);
     }
 }

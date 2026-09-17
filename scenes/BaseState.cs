@@ -41,6 +41,7 @@ public abstract partial class BaseState : Node
     public virtual void OnStateBegin()
     {
         // Override in derived classes
+        Character._animationPlayer.Play(AnimationName);
     }
 
     /// <summary>

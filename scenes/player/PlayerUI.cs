@@ -6,8 +6,8 @@ public partial class PlayerUI : CanvasGroup
     [Export] private Camera3D _camera;
 
 	[Export] public float TargetSearchInterval = 0.1f;
-	[Export] public float MaxTargetDistance = 30.0f;
-    private Target _currentTarget;
+	[Export] public float MaxTargetDistance = 3000.0f;
+    public Target _currentTarget {get; private set;}
 	private float _targetSearchTimer = 0.0f;
     public override void _Ready()
     {
