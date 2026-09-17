@@ -133,6 +133,5 @@ public partial class PlayerUI : CanvasGroup
 			screenPosition - (_targetReticle.Size / 2.0f);
 
 		_targetReticle.Visible = true;
-		GD.Print("Showing target");
 	}
 }

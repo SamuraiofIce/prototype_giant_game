@@ -14,5 +14,9 @@
 	- Attacking
 
 - Targetable Object
-	- TargetPoint
-	- Grapple Point
+	- Refine ability to select
+
+
+- General Code
+	- More dependency injection where possible.
+	- Godot warns you about node structure and what children they require. Is there a way that we can code this convention?

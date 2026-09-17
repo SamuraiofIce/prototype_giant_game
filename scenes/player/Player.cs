@@ -6,27 +6,5 @@ using Godot;
 /// </summary>
 public partial class Player : BaseCharacter
 {
-
-    #region State Machine Integration
-
-    /// <summary>
-    /// Whether the player is currently on the ground.
-    /// </summary>
-    //public bool IsGrounded => IsOnFloor();
-
-    #endregion
-
-    public override void _Ready()
-    {
-        
-    }
-
-    public override void _Process(double delta)
-    {
-    }
-
-    public override void _PhysicsProcess(double delta)
-    {
-       
-    }
+    
 }

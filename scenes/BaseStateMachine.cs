@@ -39,7 +39,7 @@ public partial class BaseStateMachine : Node
     [Export] private Skeleton3D _meshSkeleton;
     [Export] private MeshInstance3D _mesh;
     [Export] private MeshInstance3D _shadowMesh;
-    [Export] private CharacterBody3D _characterBody;
+    [Export] private BaseCharacter _character;
     #endregion
 
     #region Properties
@@ -69,6 +69,8 @@ public partial class BaseStateMachine : Node
             if (child is BaseState state)
             {
                 _states.Add(state);
+                state.Machine = this;
+                state.Character = _character;
             }
         }
         TransitionTo("Idle");

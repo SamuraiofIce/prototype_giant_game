@@ -9,7 +9,7 @@ public abstract partial class BaseState : Node
     /// <summary>
     /// Reference to the parent character using this state.
     /// </summary>
-    [Export] public BaseCharacter Character { get; set; }
+    public BaseCharacter Character { get; set; }
 
     /// <summary>
     /// Reference to the state machine managing this state.
@@ -34,11 +34,6 @@ public abstract partial class BaseState : Node
     [Export] public bool CanBeInterrupted = true;
     [Export] public string StateName = "Base";
     protected Vector2 HorizontalMovementVector = Vector2.Zero;
-
-    public override void _Ready()
-    {
-        Machine = GetParent<BaseStateMachine>();
-    }
 
     /// <summary>
     /// Called when the state is entered.
